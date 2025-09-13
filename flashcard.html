@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Flashcard App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .file-input-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .file-input {
+            opacity: 0;
+            position: absolute;
+            z-index: -1;
+        }
+
+        .file-input-button {
+            display: block;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .flashcard-container {
+            display: none;
+            text-align: center;
+        }
+
+        .progress {
+            color: white;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            width: 400px;
+            height: 250px;
+            margin: 0 auto 30px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #4834d4, #686de0);
+            color: white;
+            transform: rotateY(180deg);
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .stats {
+            color: white;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                width: 300px;
+                height: 200px;
+            }
+            
+            .card-front, .card-back {
+                font-size: 18px;
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Simple Flashcards</h1>
+            <p>Upload your text file and start learning!</p>
+        </div>
+
+        <div id="upload-section" class="upload-section">
+            <div class="file-input-container">
+                <input type="file" id="fileInput" class="file-input" accept=".txt,.docx,.doc" />
+                <label for="fileInput" class="file-input-button">
+                    Choose File (.txt, .docx, .doc)
+                </label>
+            </div>
+            
+            <div class="instructions">
+                <h3>📝 File Format:</h3>
+                <p>Each line should be: <strong>Word: Definition</strong></p>
+                <p>Example:</p>
+                <code>Hello: used when meeting or greeting someone.<br>
+                Goodbye: used when parting or at the end of a conversation.</code>
+            </div>
+        </div>
+
+        <div id="flashcard-container" class="flashcard-container">
+            <div class="progress">
+                <span id="current-card">1</span> of <span id="total-cards">0</span>
+            </div>
+
+            <div class="card" id="flashcard" onclick="flipCard()">
+                <div class="card-inner">
+                    <div class="card-front">
+                        <div id="word-text">Click to start!</div>
+                    </div>
+                    <div class="card-back">
+                        <div id="definition-text">Definition will appear here</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-secondary" onclick="previousCard()">← Previous</button>
+                <button class="btn btn-primary" onclick="flipCard()">Flip Card</button>
+                <button class="btn btn-secondary" onclick="nextCard()">Next →</button>
+            </div>
+
+            <div class="stats">
+                <button class="btn btn-secondary" onclick="shuffleCards()">🔀 Shuffle</button>
+                <button class="btn btn-secondary" onclick="resetApp()" style="margin-left: 10px;">📁 New File</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script>
+        let flashcards = [];
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                let text = '';
+                
+                if (file.name.endsWith('.docx')) {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const result = await mammoth.extractRawText({ arrayBuffer });
+                    text = result.value;
+                } else {
+                    text = await file.text();
+                }
+
+                parseFlashcards(text);
+                
+            } catch (error) {
+                alert('Error reading file: ' + error.message);
+            }
+        }
+
+        function parseFlashcards(text) {
+            flashcards = [];
+            const lines = text.split('\n');
+            
+            lines.forEach(line => {
+                line = line.trim();
+                if (line && line.includes(':')) {
+                    const colonIndex = line.indexOf(':');
+                    const word = line.substring(0, colonIndex).trim();
+                    const definition = line.substring(colonIndex + 1).trim();
+                    
+                    if (word && definition) {
+                        flashcards.push({ word, definition });
+                    }
+                }
+            });
+
+            if (flashcards.length === 0) {
+                alert('No valid flashcards found! Make sure each line follows the format: Word: Definition');
+                return;
+            }
+
+            currentCardIndex = 0;
+            document.getElementById('upload-section').style.display = 'none';
+            document.getElementById('flashcard-container').style.display = 'block';
+            document.getElementById('total-cards').textContent = flashcards.length;
+            
+            showCard();
+        }
+
+        function showCard() {
+            if (flashcards.length === 0) return;
+            
+            const card = flashcards[currentCardIndex];
+            document.getElementById('word-text').textContent = card.word;
+            document.getElementById('definition-text').textContent = card.definition;
+            document.getElementById('current-card').textContent = currentCardIndex + 1;
+            
+            // Reset to front
+            document.getElementById('flashcard').classList.remove('flipped');
+            isFlipped = false;
+        }
+
+        function flipCard() {
+            const flashcard = document.getElementById('flashcard');
+            flashcard.classList.toggle('flipped');
+            isFlipped = !isFlipped;
+        }
+
+        function nextCard() {
+            currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+            showCard();
+        }
+
+        function previousCard() {
+            currentCardIndex = (currentCardIndex - 1 + flashcards.length) % flashcards.length;
+            showCard();
+        }
+
+        function shuffleCards() {
+            for (let i = flashcards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+            }
+            currentCardIndex = 0;
+            showCard();
+        }
+
+        function resetApp() {
+            document.getElementById('upload-section').style.display = 'block';
+            document.getElementById('flashcard-container').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            flashcards = [];
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (flashcards.length === 0) return;
+            
+            switch(e.key) {
+                case ' ':
+                case 'Enter':
+                    e.preventDefault();
+                    flipCard();
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    previousCard();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    nextCard();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>
